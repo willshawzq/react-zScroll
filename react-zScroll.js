@@ -2,11 +2,9 @@ class VScroll extends React.Component {
 	constructor(props) {
 	    super(props);
 	    this.state = {
-	    	overflow: this.props.overflow,
 	    	height: this.props.maxHeight,
 	    	distance: 0,
-	    	gap: 0,
-	    	flag: false
+	    	gap: 0
 	    };
 	}
 	componentDidMount() {
@@ -41,45 +39,37 @@ class VScroll extends React.Component {
 			hOffsetTop = handler.getBoundingClientRect().top,
 			topBase = ev.clientY - hOffsetTop,
 			maxGap = bHeight - handler.offsetHeight;
-		this.setState({
+			
+		this.handleMouseMove.call(this, {
 			cHeight: cHeight,
 			bHeight: bHeight,
 			topBase: topBase,
-			maxGap: maxGap,
-			flag: true,
-			distance: distance,
-			gap: gap
+			maxGap: maxGap
 		});
 		document.onselectstart=function(ev){
 			ev.preventDefault();
 			return false;
 		};
 	}
-	handleMouseMove(ev) {
-		if(!this.state.flag) return;
-		let {
-				cHeight, 
-				bHeight, 
-				topBase, 
-				maxGap
-			} = this.state,
-			gap = ev.clientY - topBase;
+	handleMouseMove({cHeight, bHeight, topBase, maxGap}) {
+		document.onmousemove = (ev) => {
+			let gap = ev.clientY - topBase;
 
-		if(gap < 0) {
-			gap = 0;
-		}else if(gap > maxGap) {
-			gap = maxGap;
+			if(gap < 0) {
+				gap = 0;
+			}else if(gap > maxGap) {
+				gap = maxGap;
+			}
+			this.setState({
+				gap: gap,
+				distance: gap / bHeight * cHeight
+			});
+
+			document.onmouseup = (ev) => {
+				document.onmousemove = document.onmouseup = document.onselectstart = null;
+			}
 		}
-		this.setState({
-			gap: gap,
-			distance: gap / bHeight * cHeight
-		});
-	}
-	handleMouseUp(ev) {
-		this.setState({
-			flag: false
-		});
-		document.onselectstart = null;
+		
 	}
 	render() {
 		let {height, gap, distance} = this.state;
@@ -99,24 +89,15 @@ class VScroll extends React.Component {
 				</div>
 				<div className="scroll-bar" ref="bar">
 					<span className="handler" ref="handler" style={hStyle}
-						onMouseDown={this.handleMouseDown.bind(this)}
-						onMouseMove={this.handleMouseMove.bind(this)}
-						onMouseUp={this.handleMouseUp.bind(this)}></span>
+						onMouseDown={this.handleMouseDown.bind(this)}></span>
 				</div>
 			</div>
 		);
 	}
 }
 VScroll.defaultProps = {
-	maxHeight: '400px',
-	overflow: 'hidden'
+	maxHeight: '400px'
 }
 VScroll.propTypes = {
-	maxHeight: React.PropTypes.string.isRequired,
-	overflow: React.PropTypes.string,
+	maxHeight: React.PropTypes.string.isRequired
 }
-
-ReactDOM.render(
-	<VScroll  />,
-	document.getElementById("bb")
-);
