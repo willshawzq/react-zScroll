@@ -75,7 +75,7 @@ class VScroll extends React.Component {
 			distance: gap / bHeight * cHeight
 		});
 	}
-	handleMouseUp(ev) {
+	clearEvent(ev) {
 		this.setState({
 			flag: false
 		});
@@ -101,7 +101,8 @@ class VScroll extends React.Component {
 					<span className="handler" ref="handler" style={hStyle}
 						onMouseDown={this.handleMouseDown.bind(this)}
 						onMouseMove={this.handleMouseMove.bind(this)}
-						onMouseUp={this.handleMouseUp.bind(this)}></span>
+						onMouseUp={this.clearEvent.bind(this)}
+						onMouseOut={this.clearEvent.bind(this)}></span>
 				</div>
 			</div>
 		);
