@@ -1,27 +1,46 @@
-class VScroll extends React.Component {
+class ZScroll extends React.Component {
 	constructor(props) {
 	    super(props);
 	    this.state = {
-	    	height: this.props.maxHeight,
+	    	height: this.props.height,
+	    	step: this.props.step,
 	    	distance: 0,
 	    	gap: 0
 	    };
 	}
 	componentDidMount() {
 		let oUl = this.refs.ul;
-		for(let i = 0; i < 100; i++) {
+		for(let i = 0; i < 20; i++) {
 			let oLi = document.createElement("li");
 			oLi.innerHTML = i;
 			oUl.appendChild(oLi);
 		}
 		this.setScrollBar();
+		this.handleResise();
 	}
 	setScrollBar() {
-		let {vScroll, container, bar, handler} = this.refs,
-			sHeight = vScroll.offsetHeight,
+		let {zScroll, container, bar, handler} = this.refs,
+			sHeight = zScroll.offsetHeight,
 			cHeight = container.offsetHeight,
 			scale = sHeight / cHeight;
-		handler.style.height = sHeight * scale + "px";
+		if(sHeight >= cHeight) {
+			this.setState({
+				showBar: false,
+				distance: 0,
+	    		gap: 0
+			});
+		}else {
+			this.setState({
+				showBar: true,
+				handlerHeight: sHeight * scale + "px"
+			});
+		}
+		this.handleScroll();
+	}
+	handleResise() {
+		window.onresize = ev => {
+			this.setScrollBar();
+		}
 	}
 	handleMouseDown(ev) {
 		let {
@@ -39,19 +58,20 @@ class VScroll extends React.Component {
 			hOffsetTop = handler.getBoundingClientRect().top,
 			topBase = ev.clientY - hOffsetTop,
 			maxGap = bHeight - handler.offsetHeight;
-			
+
 		this.handleMouseMove.call(this, {
 			cHeight: cHeight,
 			bHeight: bHeight,
 			topBase: topBase,
-			maxGap: maxGap
+			maxGap: maxGap,
+			scale: cHeight / bHeight
 		});
 		document.onselectstart=function(ev){
 			ev.preventDefault();
 			return false;
 		};
 	}
-	handleMouseMove({cHeight, bHeight, topBase, maxGap}) {
+	handleMouseMove({cHeight, bHeight, topBase, maxGap, scale}) {
 		document.onmousemove = (ev) => {
 			let gap = ev.clientY - topBase;
 
@@ -62,17 +82,66 @@ class VScroll extends React.Component {
 			}
 			this.setState({
 				gap: gap,
-				distance: gap / bHeight * cHeight
+				distance: gap * scale
 			});
 
 			document.onmouseup = (ev) => {
 				document.onmousemove = document.onmouseup = document.onselectstart = null;
 			}
 		}
-		
+	}
+	handleScroll() {
+		let {zScroll} = this.refs;
+		this.removeWheelEvent(zScroll, this.wheelFn);
+		if(!this.state.showBar) {
+			return;
+		}
+		let {
+				bar, 
+				handler, 
+				container, 
+				step
+			} = this.refs;
+		let oHeight = zScroll.offsetHeight,
+			hHeight = handler.offsetHeight,
+			bHeight = bar.offsetHeight,
+			cHeight = container.offsetHeight,
+			barMaxGap = bHeight - hHeight,
+			conMaxGap = cHeight - oHeight,
+			barStep = step,
+			conStep = conMaxGap * barStep / barMaxGap;
+		this.addWheelEvent(zScroll, this.wheelFn.bind(this, {
+			barStep, conStep, barMaxGap, conMaxGap
+		}));
+	}
+	wheelFn({
+		barStep, conStep, barMaxGap, conMaxGap
+	}, ev) {
+		let {gap, distance, height} = this.state,
+            delta = (ev.wheelDelta) ? ev.wheelDelta / 120 : -(ev.detail || 0) / 3;
+		if(delta >= 0) {
+			this.setState({
+				gap: gap > barStep ? (gap - barStep) : 0,
+				distance: distance > conStep ? (distance - conStep) : 0
+			});
+		}else {
+			this.setState({
+				gap: (gap + barStep < barMaxGap) ? (gap + barStep) : barMaxGap,
+				distance: (distance + conStep < conMaxGap) ? (distance + conStep) : conMaxGap
+			});
+		}
+		console.log(444);
+	}
+	removeWheelEvent(el, fn) {
+		let type = document.mozHidden !== undefined ? 'DOMMouseScroll' : 'mousewheel';
+		el.removeEventListener(type, fn, false);
+	}
+	addWheelEvent(el, fn) {
+		let type = document.mozHidden !== undefined ? 'DOMMouseScroll' : 'mousewheel';
+		el.addEventListener(type, fn, false);
 	}
 	render() {
-		let {height, gap, distance} = this.state;
+		let {height, gap, distance, showBar, handlerHeight} = this.state;
 		let sStyle = {
 				height: height
 			},
@@ -80,24 +149,34 @@ class VScroll extends React.Component {
 				transform: `translate3d(0,-${distance}px,0)`
 			},
 			hStyle = {
+				height: handlerHeight,
 				transform: `translate3d(0,${gap}px,0)`
 			}
 		return (
-			<div className="VScroll" ref="vScroll" style={sStyle}>
+			<div className="ZScroll" ref="zScroll" style={sStyle}>
 				<div className="scroll-container" ref="container" style={cStyle}>
 					<ul ref="ul"></ul>
 				</div>
-				<div className="scroll-bar" ref="bar">
-					<span className="handler" ref="handler" style={hStyle}
-						onMouseDown={this.handleMouseDown.bind(this)}></span>
-				</div>
+				{(()=>{
+					if(showBar) {
+						return (
+								<div className="scroll-bar" ref="bar">
+									<span className="handler" ref="handler" style={hStyle}
+										onMouseDown={this.handleMouseDown.bind(this)}></span>
+								</div>
+							);
+					}
+				})()}
+				
 			</div>
 		);
 	}
 }
-VScroll.defaultProps = {
-	maxHeight: '400px'
+ZScroll.defaultProps = {
+	height: '80%',
+	step: 40
 }
-VScroll.propTypes = {
-	maxHeight: React.PropTypes.string.isRequired
+ZScroll.propTypes = {
+	height: React.PropTypes.string.isRequired,
+	height: React.PropTypes.string
 }
