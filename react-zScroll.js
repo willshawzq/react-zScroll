@@ -4,6 +4,7 @@ class ZScroll extends React.Component {
 	    this.state = {
 	    	height: this.props.height,
 	    	step: this.props.step,
+	    	showBar: undefined,
 	    	distance: 0,
 	    	gap: 0
 	    };
@@ -35,7 +36,6 @@ class ZScroll extends React.Component {
 				handlerHeight: sHeight * scale + "px"
 			});
 		}
-		this.handleScroll();
 	}
 	handleResise() {
 		window.onresize = ev => {
@@ -90,9 +90,12 @@ class ZScroll extends React.Component {
 			}
 		}
 	}
+	componentDidUpdate() {
+		this.handleScroll();
+	}
 	handleScroll() {
 		let {zScroll} = this.refs;
-		this.removeWheelEvent(zScroll, this.wheelFn);
+		this.removeWheelEvent(zScroll, this.fn);
 		if(!this.state.showBar) {
 			return;
 		}
@@ -110,9 +113,10 @@ class ZScroll extends React.Component {
 			conMaxGap = cHeight - oHeight,
 			barStep = step,
 			conStep = conMaxGap * barStep / barMaxGap;
-		this.addWheelEvent(zScroll, this.wheelFn.bind(this, {
+		this.fn = this.wheelFn.bind(this, {
 			barStep, conStep, barMaxGap, conMaxGap
-		}));
+		})
+		this.addWheelEvent(zScroll, this.fn);
 	}
 	wheelFn({
 		barStep, conStep, barMaxGap, conMaxGap
@@ -130,7 +134,6 @@ class ZScroll extends React.Component {
 				distance: (distance + conStep < conMaxGap) ? (distance + conStep) : conMaxGap
 			});
 		}
-		console.log(444);
 	}
 	removeWheelEvent(el, fn) {
 		let type = document.mozHidden !== undefined ? 'DOMMouseScroll' : 'mousewheel';
